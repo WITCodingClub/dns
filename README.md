@@ -1,7 +1,7 @@
 # Wentworth Coding Club DNS
 
-[![test](https://github.com/witcc/dns/workflows/test/badge.svg)](https://github.com/witcc/dns/actions?query=workflow%3Atest)
-[![deploy](https://github.com/witcc/dns/workflows/deploy/badge.svg)](https://github.com/witcc/dns/actions?query=workflow%3Adeploy)
+[![test](https://github.com/WITCodingClub/dns/workflows/test/badge.svg)](https://github.com/WITCodingClub/dns/actions?query=workflow%3Atest)
+[![deploy](https://github.com/WITCodingClub/dns/workflows/deploy/badge.svg)](https://github.com/WITCodingClub/dns/actions?query=workflow%3Adeploy)
 
 This repository is used for managing the Wentworth Coding Club's DNS configuration through [OctoDNS](https://github.com/octodns/octodns). OctoDNS enables version-controlled, automated DNS management with validation and testing before changes go live.
 
