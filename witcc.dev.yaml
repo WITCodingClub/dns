@@ -1,2 +1,10 @@
 # ---
 # "":
+
+# Wildcard hostname for Cloudflare Tunnel to WITCC Coolify
+"*.server": # mayonej@wit.edu
+  ttl: 300
+  type: CNAME
+  value: bfcd48a9-593b-4833-8d33-e3b6826e971d.cfargotunnel.com
+  cloudflare:
+    proxied: true
