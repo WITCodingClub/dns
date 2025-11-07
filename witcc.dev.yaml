@@ -1,10 +1,21 @@
-# ---
-# "":
-
-# Wildcard hostname for Cloudflare Tunnel to WITCC Coolify
-"*.server": # mayonej@wit.edu
+---
+? ''
+: octodns:
+    cloudflare:
+      auto-ttl: true
   ttl: 300
-  cloudflare:
-    proxied: true
+  type: NS
+  values:
+  - curitiba.ns.porkbun.com.
+  - fortaleza.ns.porkbun.com.
+  - maceio.ns.porkbun.com.
+  - salvador.ns.porkbun.com.
+
+'*.server':
+  octodns:
+    cloudflare:
+      auto-ttl: true
+      proxied: true
+  ttl: 300
   type: CNAME
   value: bfcd48a9-593b-4833-8d33-e3b6826e971d.cfargotunnel.com.
