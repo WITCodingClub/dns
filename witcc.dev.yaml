@@ -1,12 +1,12 @@
----
-? ''
-: octodns:
-    cloudflare:
-      auto-ttl: true
-  ttl: 300
-  type: NS
-  values:
-  - curitiba.ns.porkbun.com.
-  - fortaleza.ns.porkbun.com.
-  - maceio.ns.porkbun.com.
-  - salvador.ns.porkbun.com.
+# ---
+# ? ''
+# : octodns:
+#     cloudflare:
+#       auto-ttl: true
+#   ttl: 300
+#   type: NS
+#   values:
+#   - curitiba.ns.porkbun.com.
+#   - fortaleza.ns.porkbun.com.
+#   - maceio.ns.porkbun.com.
+#   - salvador.ns.porkbun.com.
