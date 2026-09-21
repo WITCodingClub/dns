@@ -1,3 +1,5 @@
 #!/bin/sh
+# Alias for ./bin/plan, kept because older docs and habits refer to it.
+set -eu
 
-octodns-sync --config-file=./config/config.yaml
+exec "$(dirname "$0")/plan" "$@"

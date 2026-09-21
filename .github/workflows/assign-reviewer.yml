@@ -1,0 +1,96 @@
+name: assign-reviewer
+
+# Picks the next person in the review rotation and asks them to review.
+#
+# GitHub can do this by itself with team review assignment, but that feature
+# needs a paid organisation plan. This is the same idea in a workflow: the
+# rotation is .github/dns-reviewers.txt and the turn is decided by the pull
+# request number, so it moves on by one with every pull request.
+#
+# This workflow never checks out or runs code from the pull request, which is
+# why `pull_request_target` is safe here.
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  assign:
+    name: pick the next reviewer
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      # CODEOWNERS asks the whole team for a review. Set this to false if you
+      # would rather leave that request in place and only add the individual.
+      REMOVE_TEAM_REQUEST: 'true'
+      TEAM_SLUG: dns-managers
+    steps:
+      - name: Check out main (for the rotation file)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          sparse-checkout: .github/dns-reviewers.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Request a review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -eu
+
+          rotation=$(grep -vE '^\s*(#|$)' .github/dns-reviewers.txt | tr -d ' \r')
+          count=$(printf '%s\n' "$rotation" | grep -c . || true)
+          if [ "$count" -eq 0 ]; then
+            echo "::warning title=No reviewers::.github/dns-reviewers.txt is empty."
+            exit 0
+          fi
+
+          # Already has somebody on it, so leave it alone. This keeps a reopen
+          # or a "ready for review" from piling on more reviewers.
+          existing=$(gh pr view "$PR" --repo "$REPO" \
+            --json reviewRequests --jq '.reviewRequests | map(.login // empty) | length')
+          if [ "$existing" -gt 0 ]; then
+            echo "A reviewer is already requested. Nothing to do."
+            exit 0
+          fi
+
+          # Start at the pull request number and walk forward, so consecutive
+          # pull requests go to consecutive people, and skip the author.
+          reviewer=''
+          i=0
+          while [ "$i" -lt "$count" ]; do
+            pick=$(( (PR + i) % count + 1 ))
+            candidate=$(printf '%s\n' "$rotation" | sed -n "${pick}p")
+            if [ "$candidate" != "$AUTHOR" ]; then
+              reviewer="$candidate"
+              break
+            fi
+            i=$(( i + 1 ))
+          done
+
+          if [ -z "$reviewer" ]; then
+            echo "::notice title=No reviewer::$AUTHOR is the only person in the rotation."
+            exit 0
+          fi
+
+          echo "Asking $reviewer to review #$PR."
+          gh pr edit "$PR" --repo "$REPO" \
+            --add-reviewer "$reviewer" \
+            --add-assignee "$reviewer"
+
+          if [ "$REMOVE_TEAM_REQUEST" = 'true' ]; then
+            # CODEOWNERS still requires an approval from the team. Dropping the
+            # team's review request only stops everybody being notified.
+            gh api -X DELETE "repos/$REPO/pulls/$PR/requested_reviewers" \
+              -f "team_reviewers[]=$TEAM_SLUG" >/dev/null 2>&1 \
+              || echo "The team was not requested, or could not be removed."
+          fi

@@ -1,3 +1,16 @@
-* @jaspermayone
+# Every change here reaches production DNS, so every change needs an approving
+# review from the DNS Managers team.
+#
+# https://github.com/orgs/WITCodingClub/teams/dns-managers
+#
+# The team must keep write access to this repository, otherwise GitHub ignores
+# these rules.
 
-.github/** @jaspermayone
+* @WITCodingClub/dns-managers
+
+# These decide what gets applied and how. A mistake here is worse than a
+# mistake in a single record, so they are listed again to make that clear.
+/.github/ @WITCodingClub/dns-managers
+/bin/ @WITCodingClub/dns-managers
+/config/ @WITCodingClub/dns-managers
+/tools/ @WITCodingClub/dns-managers

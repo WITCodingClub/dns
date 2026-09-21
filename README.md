@@ -1,144 +1,214 @@
 # Wentworth Coding Club DNS
 
-[![test](https://github.com/WITCodingClub/dns/workflows/test/badge.svg)](https://github.com/WITCodingClub/dns/actions?query=workflow%3Atest)
-[![deploy](https://github.com/WITCodingClub/dns/workflows/deploy/badge.svg)](https://github.com/WITCodingClub/dns/actions?query=workflow%3Adeploy)
+[![validate](https://github.com/WITCodingClub/dns/actions/workflows/validate.yml/badge.svg)](https://github.com/WITCodingClub/dns/actions/workflows/validate.yml)
+[![deploy](https://github.com/WITCodingClub/dns/actions/workflows/deploy.yml/badge.svg)](https://github.com/WITCodingClub/dns/actions/workflows/deploy.yml)
+[![sync-from-cloudflare](https://github.com/WITCodingClub/dns/actions/workflows/sync-from-cloudflare.yml/badge.svg)](https://github.com/WITCodingClub/dns/actions/workflows/sync-from-cloudflare.yml)
 
-This repository is used for managing the Wentworth Coding Club's DNS configuration through [OctoDNS](https://github.com/octodns/octodns). OctoDNS enables version-controlled, automated DNS management with validation and testing before changes go live.
+This repository holds the DNS records for the Wentworth Coding Club. The YAML
+files are the source of truth. [octoDNS](https://github.com/octodns/octodns)
+applies them to Cloudflare when a pull request merges to `main`.
 
-## Managed Domains
+You get a subdomain by opening a pull request. You do not need Cloudflare
+access.
 
-- **witcc.dev** - Primary club domain
-- **hackwit.org** - For HackWIT Hackathon
+## Managed domains
 
-## Adding a Subdomain
+| Domain | Zone file | Used for |
+|---|---|---|
+| `witcc.dev` | [`witcc.dev.yaml`](./witcc.dev.yaml) | The club and its projects |
+| `hackwit.org` | [`hackwit.org.yaml`](./hackwit.org.yaml) | The HackWIT hackathon |
 
-### Step 1: Fork the Repository
+## Get a subdomain
 
-[Create a fork](https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo) of this repository to your GitHub account.
+### 1. Fork and edit
 
-### Step 2: Edit the Domain Configuration File
-
-Open either [witcc.dev.yaml](./witcc.dev.yaml) or [hackwit.org.yaml](./hackwit.org.yaml) depending on which domain you want to add a subdomain to.
-
-Add the following entry alphabetically based on the subdomain name:
+[Fork this repository](https://github.com/WITCodingClub/dns/fork), then open the
+zone file for the domain you want. Add your record in alphabetical order:
 
 ```yaml
-SUBDOMAIN_NAME: # yourwitemail@wit.edu
+docs: # mayonej@wit.edu
   - ttl: 600
     type: CNAME
-    value: SOURCE_DOMAIN_OR_IP.
+    value: docs-site.netlify.app.
 ```
 
-### Step 3: Configure Your Subdomain
+That creates `docs.witcc.dev` and points it at `docs-site.netlify.app`.
 
-- **SUBDOMAIN_NAME**: Replace with your desired subdomain name
-  - Example: `hello` would create `hello.witcc.dev`
-- **SOURCE_DOMAIN_OR_IP**: Replace with the target domain or IP address
-  - For domains: Use `CNAME` and include the trailing `.`
-    - Example: `example.com.`
-  - For IP addresses: Change `type: CNAME` to `type: A` and remove the trailing `.`
-    - Example: `192.0.2.1`
-- **Contact info**: Add your wit email in a comment above your entry. This way we know who is responsible for the subdomain. If you're making the PR but it makes more sense for someone else to "own" the subdomain, you can add their email there instead. Feel free to list multiple people.
+Three rules decide whether it works:
 
-### Example Configurations
+- **The name is the part before the domain.** `docs` becomes `docs.witcc.dev`.
+- **A `CNAME` value ends with a dot.** An `A` or `AAAA` value does not.
+- **Every record needs an owner.** Put a WIT email in a comment on the same
+  line as the name. We use it to find out who to ask when the record breaks.
+  List more than one person if more than one person is responsible.
 
-#### CNAME Record (Domain)
+### Order is checked
+
+The `dns records` check fails on a zone file that is out of order, so this is
+a rule and not a request. The order is **natural**, not plain alphabetical:
+
+- Records go in order by name, and `ns2` comes before `ns10`.
+- The apex record, written `""`, comes first.
+- Inside a record, `octodns` comes before `ttl`, `type` and `value`.
+
+Run `./bin/validate` to check before you push. The nightly sync writes files
+in this order by itself.
+
+### 2. Open a pull request
+
+A bot adds two things to your pull request:
+
+- **A plan.** It lists every record the merge would create, change, or delete.
+  Read it. If it shows something you did not intend, fix your branch.
+- **A reviewer.** The rotation in
+  [`.github/dns-reviewers.txt`](./.github/dns-reviewers.txt) decides whose turn
+  it is.
+
+Push more commits to the same branch if the reviewer asks for changes. Do not
+close the pull request and open a new one.
+
+### 3. Wait for the deploy
+
+Cloudflare gets the change within about a minute of the merge. Most resolvers
+follow within the TTL. A few take up to 24 hours.
+
+## Record types
+
+| Type | Points at | Example value |
+|---|---|---|
+| `A` | An IPv4 address | `192.0.2.1` |
+| `AAAA` | An IPv6 address | `2001:db8::1` |
+| `CNAME` | Another domain | `example.com.` |
+| `TXT` | Text, for verification or SPF | `"a-verification-string"` |
+| `MX` | A mail server | See the zone file for the current setup |
+
+### More than one record on one name
+
 ```yaml
-myproject: # mayonej@wit.edu
-  - ttl: 600
-    type: CNAME
-    value: myproject.vercel.app.
-```
-
-#### A Record (IP Address)
-```yaml
-server: # lambertl@wit.edu
-  - ttl: 600
-    type: A
-    value: 192.0.2.1
-```
-
-#### Multiple Records
-```yaml
-docs: # team@hackwit.org, mayonej@wit.org, lambertl@wit.edu
+docs: # mayonej@wit.edu, lambertl@wit.edu
   - ttl: 600
     type: CNAME
     value: docs-site.netlify.app.
   - ttl: 600
     type: TXT
-    value: "verification-token-here"
+    value: "a-verification-string"
 ```
 
-### Step 4: Submit Pull Request
+### Behind the Cloudflare proxy
 
-1. Commit your changes to your fork
-2. [Create a pull request](https://docs.github.com/en/free-pro-team@latest/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork) back to the main repository
-3. Wait for a maintainer to review your PR
+Add the `octodns` block to put a record behind Cloudflare:
 
-**Note**: If changes are requested, update your existing PR by committing to your fork rather than closing and creating a new one.
-
-## Common Record Types
-
-| Type | Usage | Example |
-|------|-------|---------|
-| **A** | Points to an IPv4 address | `value: 192.0.2.1` |
-| **AAAA** | Points to an IPv6 address | `value: 2001:0db8::1` |
-| **CNAME** | Points to another domain | `value: example.com.` |
-| **TXT** | Text records (verification, SPF, etc.) | `value: "verification-string"` |
-| **MX** | Mail server records | See email configuration |
-
-
-
-## Testing Changes Locally
-
-If you want to validate your changes before submitting a PR:
-
-### Prerequisites
-
-```bash
-# Install Python 3 and pip
-# Install OctoDNS and the Cloudflare provider
-pip install 'octodns>=1.5.0' octodns-cloudflare
+```yaml
+app: # mayonej@wit.edu
+  - octodns:
+      cloudflare:
+        proxied: true
+    ttl: 300
+    type: A
+    value: 192.0.2.1
 ```
 
-### Validate Configuration
+`octodns` comes before `ttl`. See **Order is checked** below.
 
-```bash
-# Run a dry-run to check for errors
-./bin/dry-run
+## How it works
+
+```mermaid
+flowchart TD
+    A[You edit a zone file] --> B[Pull request]
+    B --> C{validate}
+    B --> D{plan}
+    B --> E{cloudflare in sync}
+    C -->|YAML and records are valid| F
+    D -->|Posts the plan as a comment| F
+    E -->|Cloudflare still matches main| F[Review by DNS Managers]
+    F -->|Approved and squash merged| G[deploy]
+    G --> H[(Cloudflare)]
+
+    I[Nightly sync] -->|Reads Cloudflare| H
+    I -->|Finds a manual change| J[Opens a pull request]
+    J --> F
 ```
 
-This will validate your YAML syntax and check for DNS configuration errors without making any actual changes.
+Four workflows do the work:
 
-## How It Works
+| Workflow | Runs when | Does what |
+|---|---|---|
+| [`validate`](./.github/workflows/validate.yml) | Every pull request | Checks the YAML, every record, and the tools tests. Holds no secrets, so it is safe on forks. |
+| [`plan`](./.github/workflows/plan.yml) | Every pull request | Posts the plan as a comment, and fails if Cloudflare has drifted away from `main`. |
+| [`deploy`](./.github/workflows/deploy.yml) | Push to `main` | Applies the zone files to Cloudflare, then confirms they match. Refuses a plan that deletes more than three records. |
+| [`sync-from-cloudflare`](./.github/workflows/sync-from-cloudflare.yml) | Nightly | Pulls manual Cloudflare changes back into the zone files as a pull request. |
 
-1. **Configuration**: DNS records are defined in YAML files (witcc.dev.yaml, hackwit.org.yaml)
-2. **Validation**: GitHub Actions automatically validates changes on every PR
-3. **Review**: A maintainer reviews and approves your changes
-4. **Deployment**: Upon merge to main, changes are automatically deployed to Cloudflare
-5. **Propagation**: DNS changes typically propagate within minutes but can take up to 24 hours
+### Why the nightly sync exists
 
-## Project Eligibility
+Cloudflare lets a club officer change a record in the dashboard. octoDNS does
+not know about that change, so the next deploy would undo it.
 
-Subdomains are available for:
-- Official Wentworth Coding Club projects
-- Club-affiliated events and initiatives
+The nightly job reads Cloudflare, folds anything new into the zone files, and
+opens a pull request. The change keeps its history and gets an owner. The
+`cloudflare in sync` check blocks other merges until that pull request lands,
+so nobody can overwrite the change by accident.
 
-For questions about eligibility, reach out to a club E-Board member on discord.
+See [`docs/runbook.md`](./docs/runbook.md) for what to do when a check fails.
 
-## Need Help?
+### The `octodns-meta` record
 
-- Check the [OctoDNS documentation](https://github.com/octodns/octodns)
-- Open an issue in this repository
-- Ask in the club's Discord
-- Contact a repository maintainer (primarilly @jaspermayone)
+Every zone has a `octodns-meta` TXT record. octoDNS writes it on each deploy.
+Use it to confirm that a deploy reached Cloudflare:
 
-## Contributing
+```console
+$ dig +short TXT octodns-meta.witcc.dev
+"octodns-version=1.14.0" "provider=cloudflare" "time=2026-09-21T07:17:03+00:00"
+```
 
-We welcome contributions! Please:
-- Follow the existing format and alphabetical ordering
-- Include your contact information in comments
-- Provide a clear description in your PR
-- Be responsive to review feedback
+It only changes when something else in the zone changes, so it does not create
+a deploy of its own every night. Do not add it to a zone file. The nightly sync
+leaves it out on purpose.
 
----
+## Work on this locally
+
+You do not need a Cloudflare token to check your own change.
+
+```console
+$ python3 -m venv env
+$ ./env/bin/pip install -r requirements.txt
+$ export PATH="$PWD/env/bin:$PATH"
+
+$ ./bin/validate     # parse the config and check every record
+$ ./bin/zones        # list the zones this repository manages
+```
+
+These need a Cloudflare token in `CLOUDFLARE_TOKEN`. Ask a DNS Manager for a
+read-only one.
+
+```console
+$ ./bin/plan         # show what a deploy would change
+$ ./bin/dump .live   # write the live Cloudflare state to .live/
+```
+
+`./bin/sync` applies to production. Only the `deploy` workflow should run it.
+
+Run the tests for the sync tooling:
+
+```console
+$ ./env/bin/python -m unittest discover -s tools -p 'test_*.py' -v
+```
+
+## Who can approve and merge
+
+The [DNS Managers](https://github.com/orgs/WITCodingClub/teams/dns-managers)
+team owns every file in this repository. A pull request needs an approving
+review from that team before it can merge.
+
+[`CONTRIBUTING.md`](./CONTRIBUTING.md) covers the review rules.
+[`docs/runbook.md`](./docs/runbook.md) covers the jobs a DNS Manager has to do.
+
+## Who can have a subdomain
+
+Subdomains are for club projects, club events, and club services. Ask an
+E-Board member on Discord if you are not sure whether yours counts.
+
+## Get help
+
+- Open an [issue](https://github.com/WITCodingClub/dns/issues/new/choose).
+- Ask in the club Discord.
+- Read the [octoDNS documentation](https://octodns.readthedocs.io/en/stable/).
