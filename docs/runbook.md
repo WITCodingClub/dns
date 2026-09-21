@@ -78,21 +78,32 @@ It should print `## No changes were planned`. Until it does, the
 
 ### 4. Required checks and code owner review
 
-Do this **last**, after the workflows are on `main` and step 3 has landed.
+**This is already applied.** Ruleset `23783065` on `main` requires one
+approving review from a code owner, squash merge, resolved review threads, and
+these five checks:
 
-The `main` ruleset already requires one approving review, squash merge, and
-resolved review threads. Add code owner review and the three checks:
+`yaml syntax`, `dns records`, `tools tests`, `plan the change`,
+`cloudflare in sync`.
+
+`docs/ruleset-main.json` is a copy of it. Restore it with:
 
 ```console
-$ gh api -X PUT repos/WITCodingClub/dns/rulesets/9465567 \
+$ gh api -X PUT repos/WITCodingClub/dns/rulesets/23783065 \
     --input docs/ruleset-main.json
 ```
 
-Then check it:
+Read it back with:
 
 ```console
-$ gh api repos/WITCodingClub/dns/rulesets/9465567 --jq '.rules[] | select(.type=="pull_request" or .type=="required_status_checks")'
+$ gh api repos/WITCodingClub/dns/rulesets/23783065 --jq '.rules[] | select(.type=="pull_request" or .type=="required_status_checks")'
 ```
+
+> **The ruleset went on before the workflows did.** `plan.yml` runs on
+> `pull_request_target`, which reads the workflow from `main`. Until it is on
+> `main`, `plan the change` and `cloudflare in sync` never start, so any pull
+> request open right now waits on checks that cannot run. A repository admin
+> has `bypass_mode: always` and can merge the first one anyway. Every pull
+> request after that gets real checks.
 
 The nightly schedule starts by itself once the workflow is on `main`. There is
 nothing else to turn on.

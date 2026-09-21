@@ -43,9 +43,16 @@ providers:
   config:
     class: octodns.provider.yaml.YamlProvider
     directory: ./
-    # Records do not have to be alphabetical. Keep them alphabetical anyway,
-    # because it keeps diffs small.
-    enforce_order: False
+    # Records must be in order, and so must the keys inside a record. This is
+    # checked, not asked for: `bin/validate` fails on a file that is out of
+    # order. It keeps diffs small and stops two people adding the same name in
+    # two places.
+    #
+    # The order is natural, not plain alphabetical, so `ns2` comes before
+    # `ns10`. Inside a record it puts `octodns` before `ttl`, `type` and
+    # `value`. `tools/merge_live.py` and `octodns-dump` both write it this way.
+    enforce_order: True
+    order_mode: natural
   cloudflare:
     class: octodns_cloudflare.CloudflareProvider
     token: env/CLOUDFLARE_TOKEN

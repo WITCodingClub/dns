@@ -8,7 +8,9 @@ Thank you for helping run the club's DNS. This file covers the rules. The
 1. Fork the repository and make your change on a branch.
 2. One pull request does one thing. Do not add three unrelated subdomains in
    one pull request.
-3. Keep records in alphabetical order inside a zone file.
+3. Keep records in order inside a zone file. The `dns records` check enforces
+   it. The order is natural, so `ns2` comes before `ns10`, and inside a record
+   `octodns` comes before `ttl`, `type` and `value`. Run `./bin/validate`.
 4. Give every record an owner in a comment on the same line as its name.
 5. Read the `octoDNS plan` comment on your pull request before you ask for a
    review. It is the exact list of changes the merge will make.

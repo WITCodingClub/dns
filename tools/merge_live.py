@@ -28,8 +28,14 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from natsort import natsort_keygen
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap
+
+# octoDNS checks record order with a natural sort, so `ns2` comes before
+# `ns10`. Plain `sorted` gets that backwards and would write a file that
+# `bin/validate` then rejects. Use the same key octoDNS uses.
+_natsort_key = natsort_keygen()
 
 # Records that octoDNS itself manages. They live in Cloudflare but never in the
 # zone files, so merging them back would create an endless nightly diff.
@@ -138,7 +144,8 @@ def merge_zone(zone, live_dir, repo_dir, ignored, today, keep_root_ns=False):
         return [], [], []
 
     merged = CommentedMap()
-    for key in sorted(live, key=lambda k: (k != "", k)):
+    # The apex record, whose name is the empty string, sorts first by itself.
+    for key in sorted(live, key=_natsort_key):
         merged[key] = live[key]
         carried = existing.ca.items.get(key)
         if carried is not None:

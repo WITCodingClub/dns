@@ -119,6 +119,61 @@ octodns-meta:
         self.assertEqual(([], [], []), (added, updated, removed))
         self.assertNotIn("octodns-meta", self.result())
 
+    def test_output_passes_octodns_enforce_order(self):
+        # This is the test that matters. config/config.yaml sets
+        # enforce_order: True, so a file this script writes has to be one
+        # octoDNS will load, or the nightly sync breaks every later build.
+        from octodns.yaml import safe_load
+
+        self.write_live(
+            """---
+zeta: # lambertl@wit.edu
+  - ttl: 600
+    type: A
+    value: 192.0.2.1
+ns10:
+  - ttl: 600
+    type: A
+    value: 192.0.2.10
+ns2:
+  - ttl: 600
+    type: A
+    value: 192.0.2.2
+"":
+  - ttl: 300
+    type: A
+    value: 192.0.2.5
+api: # mayonej@wit.edu
+  - octodns:
+      cloudflare:
+        proxied: true
+    ttl: 600
+    type: A
+    value: 192.0.2.9
+"""
+        )
+        self.merge()
+        safe_load(self.result(), enforce_order=True, order_mode="natural")
+
+    def test_records_use_natural_order_not_plain_alphabetical(self):
+        # natsort puts ns2 before ns10. Plain sorted() does the opposite and
+        # octoDNS would reject the file.
+        self.write_live(
+            """---
+ns10:
+  - ttl: 600
+    type: A
+    value: 192.0.2.10
+ns2:
+  - ttl: 600
+    type: A
+    value: 192.0.2.2
+"""
+        )
+        self.merge()
+        result = self.result()
+        self.assertLess(result.index("ns2:"), result.index("ns10:"))
+
     def test_records_are_sorted_with_the_root_first(self):
         self.write_live(
             """---

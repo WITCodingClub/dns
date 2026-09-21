@@ -42,6 +42,18 @@ Three rules decide whether it works:
   line as the name. We use it to find out who to ask when the record breaks.
   List more than one person if more than one person is responsible.
 
+### Order is checked
+
+The `dns records` check fails on a zone file that is out of order, so this is
+a rule and not a request. The order is **natural**, not plain alphabetical:
+
+- Records go in order by name, and `ns2` comes before `ns10`.
+- The apex record, written `""`, comes first.
+- Inside a record, `octodns` comes before `ttl`, `type` and `value`.
+
+Run `./bin/validate` to check before you push. The nightly sync writes files
+in this order by itself.
+
 ### 2. Open a pull request
 
 A bot adds two things to your pull request:
@@ -88,13 +100,15 @@ Add the `octodns` block to put a record behind Cloudflare:
 
 ```yaml
 app: # mayonej@wit.edu
-  - ttl: 300
-    type: A
-    value: 192.0.2.1
-    octodns:
+  - octodns:
       cloudflare:
         proxied: true
+    ttl: 300
+    type: A
+    value: 192.0.2.1
 ```
+
+`octodns` comes before `ttl`. See **Order is checked** below.
 
 ## How it works
 

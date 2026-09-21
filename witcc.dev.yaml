@@ -1,9 +1,9 @@
 ---
 
 strings:
+  - octodns:
+      cloudflare:
+        auto-ttl: true
     ttl: 300
     type: A
     value: 129.213.163.213
-    octodns:
-      cloudflare:
-        auto-ttl: true
