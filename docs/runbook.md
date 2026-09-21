@@ -21,7 +21,8 @@ lands.
 |---|---|---|
 | `CLOUDFLARE_TOKEN` | Cloudflare API token, **edit** DNS for both zones | `deploy` |
 | `CLOUDFLARE_TOKEN_READ_ONLY` | Cloudflare API token, **read** DNS for both zones | `plan`, `sync-from-cloudflare` |
-| `DNS_BOT_TOKEN` | Fine grained personal access token | `sync-from-cloudflare` |
+| `DNS_BOT_APP_ID` | App ID of the WITCC DNS Bot GitHub App | `sync-from-cloudflare` |
+| `DNS_BOT_PRIVATE_KEY` | That App's private key, the whole `.pem` | `sync-from-cloudflare` |
 
 The two Cloudflare tokens already exist. Create them at
 **Cloudflare > My Profile > API Tokens** with the `Edit zone DNS` template, and
@@ -31,18 +32,42 @@ scope each one to `witcc.dev` and `hackwit.org` only.
 > scripts from a pull request while holding it, so anybody who opened a pull
 > request could have read it. See [`SECURITY.md`](../SECURITY.md).
 
-`DNS_BOT_TOKEN` is new and you have to create it. GitHub does not start
-workflows for commits pushed with the built in `GITHUB_TOKEN`. Without this
-token, the nightly sync pull request gets no checks, so it can never satisfy a
-required check and can never merge.
+### 1b. The bot App
 
-1. Go to **Settings > Developer settings > Personal access tokens > Fine
-   grained tokens** on an account that is a DNS Manager.
-2. Resource owner: `WITCodingClub`. Repository access: only `WITCodingClub/dns`.
-3. Repository permissions: `Contents: Read and write`,
-   `Pull requests: Read and write`, `Issues: Read and write`.
-4. Set an expiry you will remember. Put a reminder in the club calendar.
-5. Save it as the `DNS_BOT_TOKEN` repository secret.
+The nightly sync opens its pull request as a GitHub App. Two reasons, and both
+of them rule out the simpler options:
+
+- **Not `GITHUB_TOKEN`.** GitHub does not start workflows for commits pushed
+  with the built in token, so that pull request would get no checks and could
+  never satisfy a required check.
+- **Not a person's token.** Nobody can approve their own pull request. If the
+  sync ran on a DNS Manager's personal access token, every sync pull request
+  would be authored by that person and they could never review it. On a two
+  person team that leaves exactly one possible reviewer.
+
+An App is neither. It triggers checks, and it is not a person, so anybody on
+the team can approve its pull requests. It also has no expiry to forget.
+
+1. Go to
+   <https://github.com/organizations/WITCodingClub/settings/apps/new>.
+2. **Name**: `WITCC DNS Bot`. **Homepage URL**: this repository is fine.
+3. Turn **Webhook > Active** off. The App never receives events.
+4. **Repository permissions**: `Contents: Read and write`,
+   `Pull requests: Read and write`, `Issues: Read and write`. Nothing else.
+5. **Where can this App be installed**: only this account.
+6. Create it, then **Generate a private key**. A `.pem` downloads.
+7. **Install App** on the left, install it on `WITCodingClub/dns` only.
+8. Save two repository secrets:
+
+   ```console
+   $ gh secret set DNS_BOT_APP_ID --repo WITCodingClub/dns
+   $ gh secret set DNS_BOT_PRIVATE_KEY --repo WITCodingClub/dns < ~/Downloads/witcc-dns-bot.*.pem
+   ```
+
+   The App ID is on the App's settings page. The private key secret is the
+   whole `.pem` file, `BEGIN`/`END` lines included.
+9. Delete the `.pem` from your Downloads folder, and delete the old
+   `DNS_BOT_TOKEN` secret if it is still there.
 
 ### 2. Team access
 
