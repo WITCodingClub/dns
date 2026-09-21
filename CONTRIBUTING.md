@@ -36,18 +36,16 @@ You are on the [DNS Managers
 team](https://github.com/orgs/WITCodingClub/teams/dns-managers). A pull request
 cannot merge without an approving review from one of you.
 
-### Reviews go round the team
+### Reviews go to the whole team
 
-A workflow asks one person per pull request, in rotation. The rotation is
-[`.github/dns-reviewers.txt`](./.github/dns-reviewers.txt). It skips the author
-of the pull request.
+`CODEOWNERS` makes the team a required reviewer, so GitHub asks all of you on
+every pull request. Whoever gets to it first reviews it.
 
-Being asked does not make it only your job. Anybody on the team can approve.
-If you cannot get to a review, say so on the pull request so that somebody else
-picks it up.
+Nobody is assigned. That means a pull request can sit while each of you assumes
+the other has it. If you start a review, say so on the pull request, and if you
+cannot get to one, say that too.
 
-To change the rotation, edit the file and open a pull request. Comment out a
-line to pause somebody. Add a line to bring somebody in.
+To change who reviews, change who is on the team.
 
 ### What to check in a review
 
