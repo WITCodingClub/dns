@@ -56,13 +56,11 @@ in this order by itself.
 
 ### 2. Open a pull request
 
-A bot adds two things to your pull request:
+A bot posts a **plan** on your pull request. It lists every record the merge
+would create, change, or delete. Read it. If it shows something you did not
+intend, fix your branch.
 
-- **A plan.** It lists every record the merge would create, change, or delete.
-  Read it. If it shows something you did not intend, fix your branch.
-- **A reviewer.** The rotation in
-  [`.github/dns-reviewers.txt`](./.github/dns-reviewers.txt) decides whose turn
-  it is.
+The DNS Managers team is asked to review automatically.
 
 Push more commits to the same branch if the reviewer asks for changes. Do not
 close the pull request and open a new one.

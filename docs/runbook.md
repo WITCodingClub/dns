@@ -179,10 +179,15 @@ The zone files and Cloudflare now disagree. Fix it, do not leave it.
 3. Run `gh workflow run deploy.yml` and confirm it passes.
 4. Delete the old token in Cloudflare.
 
-### Add somebody to the rotation
+### Add somebody as a reviewer
 
-1. Add them to the `dns-managers` team.
-2. Add their GitHub username to `.github/dns-reviewers.txt` in a pull request.
+Add them to the `dns-managers` team. `CODEOWNERS` points at the team, so that
+is the only step. Check that the team still has write access:
+
+```console
+$ gh api orgs/WITCodingClub/teams/dns-managers/repos/WITCodingClub/dns \
+    --jq .permissions
+```
 
 ### Remove a subdomain
 
