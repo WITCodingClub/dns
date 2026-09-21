@@ -7,10 +7,18 @@ name: sync-from-cloudflare
 # somebody merges a pull request. With it, the change shows up as a reviewable
 # diff, keeps its history, and can be given an owner.
 #
-# The pull request needs DNS_BOT_TOKEN to be checked. GitHub does not start
-# workflows for commits pushed with the built-in GITHUB_TOKEN, so without that
-# secret the pull request gets no checks and cannot satisfy a required check.
-# See docs/runbook.md for how to create it.
+# The pull request is opened by a GitHub App, not by a person and not by the
+# built-in GITHUB_TOKEN. Both of those matter:
+#
+#   * GitHub does not start workflows for commits pushed with GITHUB_TOKEN, so
+#     a pull request opened that way gets no checks and can never satisfy a
+#     required check. An App installation token does start them.
+#   * Nobody can approve their own pull request. If a person's token opened
+#     this, that person could never review it, which on a two person team
+#     leaves exactly one possible reviewer. The App is not a person, so anybody
+#     on the team can approve.
+#
+# See docs/runbook.md for how to create the App.
 
 on:
   schedule:
@@ -35,9 +43,20 @@ jobs:
       pull-requests: write
       issues: write
     steps:
+      - name: Get a token for the bot
+        id: bot
+        uses: actions/create-github-app-token@v3
+        with:
+          # The client id is an identifier, not a credential, so it lives in a
+          # repository variable rather than a secret. Keeping it out of the
+          # secret store also keeps it out of the log masker, which makes a
+          # failure here readable.
+          client-id: ${{ vars.DNS_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.DNS_BOT_PRIVATE_KEY }}
+
       - uses: actions/checkout@v7
         with:
-          token: ${{ secrets.DNS_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.bot.outputs.token }}
 
       - uses: actions/setup-python@v7
         with:
@@ -67,8 +86,8 @@ jobs:
 
       - name: Open or update the pull request
         env:
-          GH_TOKEN: ${{ secrets.DNS_BOT_TOKEN || secrets.GITHUB_TOKEN }}
-          HAS_BOT_TOKEN: ${{ secrets.DNS_BOT_TOKEN != '' }}
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          APP_SLUG: ${{ steps.bot.outputs.app-slug }}
         run: |
           set -eu
 
@@ -83,8 +102,12 @@ jobs:
             --description "Records changed in the Cloudflare dashboard" \
             --force
 
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Commit as the App. The ruleset has
+          # require_extra_approval_for_unattributed_changes turned on, so the
+          # commit author has to be the identity that pushed it.
+          bot_id=$(gh api "users/$APP_SLUG[bot]" --jq .id)
+          git config user.name "$APP_SLUG[bot]"
+          git config user.email "$bot_id+$APP_SLUG[bot]@users.noreply.github.com"
           git switch -C cloudflare-sync
           git add -- ./*.yaml
           git commit -m 'chore: pull manual Cloudflare changes into the zone files'
@@ -102,11 +125,6 @@ jobs:
             printf -- '- If a change should not have been made, revert it in '
             printf 'Cloudflare and close this pull request. It reopens tomorrow '
             printf 'if the change is still there.\n'
-            if [ "$HAS_BOT_TOKEN" != 'true' ]; then
-              printf '\n> **No checks will run on this pull request.** '
-              printf 'The `DNS_BOT_TOKEN` secret is not set, so GitHub will not '
-              printf 'start workflows for these commits. See `docs/runbook.md`.\n'
-            fi
           } > body.md
 
           number=$(gh pr list --head cloudflare-sync --state open \
