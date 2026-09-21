@@ -1,21 +1,61 @@
 ---
+# octoDNS manager configuration.
+#
+# The YAML files at the repository root are the source of truth. Cloudflare is
+# the target. Everything here is applied by .github/workflows/deploy.yml after a
+# pull request merges to main.
+#
+# Docs: https://octodns.readthedocs.io/en/stable/
+
+manager:
+  # Where a plan is written. PlanLogger writes to stderr, so it shows up in the
+  # workflow log. PlanMarkdown writes to stdout, so `bin/plan` can capture it
+  # and post it as a pull request comment.
+  plan_outputs:
+    logger:
+      class: octodns.provider.plan.PlanLogger
+      level: info
+    markdown:
+      class: octodns.provider.plan.PlanMarkdown
+
+  # Applied after every zone's own processors. See the `processors` block below.
+  post_processors:
+    - meta
+
+processors:
+  # Writes a TXT record that records when the zone was last applied, by which
+  # octoDNS version, and against which provider. Use it to confirm that a
+  # deploy reached Cloudflare and that the change propagated:
+  #
+  #   dig +short TXT octodns-meta.witcc.dev
+  #
+  # The record only changes when something else in the zone changes, so it does
+  # not create a deploy every night on its own.
+  meta:
+    class: octodns.processor.meta.MetaProcessor
+    record_name: octodns-meta
+    include_time: true
+    include_provider: true
+    include_version: true
+    ttl: 60
+
 providers:
   config:
     class: octodns.provider.yaml.YamlProvider
     directory: ./
+    # Records do not have to be alphabetical. Keep them alphabetical anyway,
+    # because it keeps diffs small.
     enforce_order: False
   cloudflare:
     class: octodns_cloudflare.CloudflareProvider
     token: env/CLOUDFLARE_TOKEN
-    # Production best practices
-    plan_type: free       # Cloudflare plan type
-    min_ttl: 120                 # Cloudflare minimum
-    # Enhanced reliability settings
-    retry_count: 5               # More retries for production
-    retry_period: 600            # 10 minute wait on rate limits
+    plan_type: free
+    min_ttl: 120
+    retry_count: 5
+    retry_period: 600
     pagerules: false
-    zones_per_page: 50           # API pagination
-    records_per_page: 100        # API pagination
+    zones_per_page: 50
+    records_per_page: 100
 
 zones:
   witcc.dev.:
