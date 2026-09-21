@@ -70,8 +70,3 @@ zones:
       - config
     targets:
       - cloudflare
-  hackwit.org.:
-    sources:
-      - config
-    targets:
-      - cloudflare
