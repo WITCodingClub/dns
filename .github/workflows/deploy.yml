@@ -1,0 +1,66 @@
+name: deploy
+
+# Applies the zone files to Cloudflare. This is the only workflow that holds a
+# Cloudflare token with write access.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*.yaml'
+      - 'config/**'
+      - 'bin/**'
+      - 'requirements.txt'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never let two deploys apply to Cloudflare at the same time, and never cancel
+# one halfway through.
+concurrency:
+  group: deploy-cloudflare
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: apply to cloudflare
+    runs-on: ubuntu-latest
+    # Add reviewers or a wait timer to this environment in the repository
+    # settings if you ever want a second pair of eyes between merge and apply.
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install octoDNS
+        run: pip install -r requirements.txt
+
+      - name: Show what will be applied
+        env:
+          CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+        run: ./bin/plan | tee "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply to Cloudflare
+        env:
+          CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+        run: ./bin/sync
+
+      - name: Confirm Cloudflare now matches main
+        env:
+          CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+        run: |
+          set -eu
+          ./bin/plan > after.md
+          if grep -q 'No changes were planned' after.md; then
+            echo "Cloudflare matches main."
+            exit 0
+          fi
+          echo "::error title=Deploy did not finish::Cloudflare still does not match main after the apply."
+          cat after.md
+          exit 1

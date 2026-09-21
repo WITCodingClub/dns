@@ -1,0 +1,125 @@
+name: sync-from-cloudflare
+
+# Pulls records that somebody added or changed in the Cloudflare dashboard back
+# into the zone files, and opens a pull request with them.
+#
+# Without this, a manual change in Cloudflare is silently undone the next time
+# somebody merges a pull request. With it, the change shows up as a reviewable
+# diff, keeps its history, and can be given an owner.
+#
+# The pull request needs DNS_BOT_TOKEN to be checked. GitHub does not start
+# workflows for commits pushed with the built-in GITHUB_TOKEN, so without that
+# secret the pull request gets no checks and cannot satisfy a required check.
+# See docs/runbook.md for how to create it.
+
+on:
+  schedule:
+    # 07:17 UTC, which is the small hours in Boston. The odd minute keeps this
+    # off the top of the hour, when GitHub's scheduler is busiest.
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-from-cloudflare
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: pull cloudflare into git
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.DNS_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install octoDNS
+        run: pip install -r requirements.txt
+
+      - name: Dump the live Cloudflare zones
+        env:
+          CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN_READ_ONLY }}
+        run: ./bin/dump .live
+
+      - name: Merge Cloudflare into the zone files
+        run: |
+          set -eu
+          zones=$(./bin/zones | sed 's/^/--zone /' | tr '\n' ' ')
+
+          # shellcheck disable=SC2086
+          python tools/merge_live.py \
+            --live-dir .live \
+            --repo-dir . \
+            --summary-out summary.md \
+            $zones
+          rm -rf .live
+
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ secrets.DNS_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+          HAS_BOT_TOKEN: ${{ secrets.DNS_BOT_TOKEN != '' }}
+        run: |
+          set -eu
+
+          if git diff --quiet -- ./*.yaml; then
+            echo "Cloudflare matches the zone files. Nothing to do."
+            rm -f summary.md
+            exit 0
+          fi
+
+          gh label create cloudflare-drift \
+            --color FBCA04 \
+            --description "Records changed in the Cloudflare dashboard" \
+            --force
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -C cloudflare-sync
+          git add -- ./*.yaml
+          git commit -m 'chore: pull manual Cloudflare changes into the zone files'
+          git push --force origin cloudflare-sync
+
+          {
+            printf 'Somebody changed DNS in the Cloudflare dashboard instead '
+            printf 'of opening a pull request. This brings the zone files back '
+            printf 'in line so that the next deploy does not undo the change.\n\n'
+            cat summary.md
+            printf '\n### Before you merge\n\n'
+            printf -- '- Give every record marked `TODO owner unknown` an owner, '
+            printf 'in a comment on the same line.\n'
+            printf -- '- Check that each change is one the club wants to keep.\n'
+            printf -- '- If a change should not have been made, revert it in '
+            printf 'Cloudflare and close this pull request. It reopens tomorrow '
+            printf 'if the change is still there.\n'
+            if [ "$HAS_BOT_TOKEN" != 'true' ]; then
+              printf '\n> **No checks will run on this pull request.** '
+              printf 'The `DNS_BOT_TOKEN` secret is not set, so GitHub will not '
+              printf 'start workflows for these commits. See `docs/runbook.md`.\n'
+            fi
+          } > body.md
+
+          number=$(gh pr list --head cloudflare-sync --state open \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --body-file body.md
+            echo "Updated pull request #$number."
+          else
+            gh pr create \
+              --title 'chore: pull manual Cloudflare changes into the zone files' \
+              --body-file body.md \
+              --base main \
+              --head cloudflare-sync \
+              --label cloudflare-drift
+          fi
+          rm -f summary.md body.md
