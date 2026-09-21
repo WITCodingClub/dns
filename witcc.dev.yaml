@@ -111,3 +111,11 @@ str: # TODO owner unknown, added from Cloudflare on 2026-09-21
   ttl: 300
   type: A
   value: 129.213.163.213
+
+test: # TODO owner unknown, added from Cloudflare on 2026-09-21
+  octodns:
+    cloudflare:
+      auto-ttl: true
+  ttl: 300
+  type: TXT
+  value: test
