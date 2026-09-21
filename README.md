@@ -16,7 +16,6 @@ access.
 | Domain | Zone file | Used for |
 |---|---|---|
 | `witcc.dev` | [`witcc.dev.yaml`](./witcc.dev.yaml) | The club and its projects |
-| `hackwit.org` | [`hackwit.org.yaml`](./hackwit.org.yaml) | The HackWIT hackathon |
 
 ## Get a subdomain
 
