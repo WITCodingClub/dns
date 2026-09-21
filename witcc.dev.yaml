@@ -1,5 +1,5 @@
 ---
-'':  # TODO owner unknown, added from Cloudflare on 2026-09-21
+'':  # mayonej@wit.edu
   - octodns:
       cloudflare:
         auto-ttl: true
@@ -22,7 +22,7 @@
       - google-site-verification=gM4K9uxuf8Ec4WCHPFh87OPjG-JqWMHJm57Kg5OII8g
       - v=spf1 include:_spf.mx.cloudflare.net ~all
 
-_dmarc: # TODO owner unknown, added from Cloudflare on 2026-09-21
+_dmarc: # mayonej@wit.edu
   octodns:
     cloudflare:
       auto-ttl: true
@@ -30,7 +30,7 @@ _dmarc: # TODO owner unknown, added from Cloudflare on 2026-09-21
   type: TXT
   value: v=DMARC1\; p=none\; rua=mailto:471a658e67014d5395684d01134cbc24@dmarc-reports.cloudflare.net
 
-_gh-witcodingclub-o: # TODO owner unknown, added from Cloudflare on 2026-09-21
+_gh-witcodingclub-o: # mayonej@wit.edu
   octodns:
     cloudflare:
       auto-ttl: true
@@ -38,7 +38,7 @@ _gh-witcodingclub-o: # TODO owner unknown, added from Cloudflare on 2026-09-21
   type: TXT
   value: 05d821afc0
 
-calendar: # TODO owner unknown, added from Cloudflare on 2026-09-21
+calendar: # mayonej@wit.edu, lambertl@wit.edu
   - octodns:
       cloudflare:
         auto-ttl: true
@@ -65,7 +65,7 @@ calendar: # TODO owner unknown, added from Cloudflare on 2026-09-21
     type: TXT
     value: v=spf1 include:_spf.mx.cloudflare.net ~all
 
-calendar-site: # TODO owner unknown, added from Cloudflare on 2026-09-21
+calendar-site: # lambertl@wit.edu
   octodns:
     cloudflare:
       auto-ttl: true
@@ -74,7 +74,7 @@ calendar-site: # TODO owner unknown, added from Cloudflare on 2026-09-21
   type: AAAA
   value: '100::'
 
-cf2024-1._domainkey: # TODO owner unknown, added from Cloudflare on 2026-09-21
+cf2024-1._domainkey: # mayonej@wit.edu
   octodns:
     cloudflare:
       auto-ttl: true
@@ -82,11 +82,11 @@ cf2024-1._domainkey: # TODO owner unknown, added from Cloudflare on 2026-09-21
   type: TXT
   value: v=DKIM1\; h=sha256\; k=rsa\; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiweykoi+o48IOGuP7GR3X0MOExCUDY/BCRHoWBnh3rChl7WhdyCxW3jgq1daEjPPqoi7sJvdg5hEQVsgVRQP4DcnQDVjGMbASQtrY4WmB1VebF+RPJB2ECPsEDTpeiI5ZyUAwJaVX7r6bznU67g7LvFq35yIo4sdlmtZGV+i0H4cpYH9+3JJ78km4KXwaf9xUJCWF6nxeD+qG6Fyruw1Qlbds2r85U9dkNDVAS3gioCvELryh1TxKGiVTkg4wqHTyHfWsp7KD3WQHYJn0RyfJJu6YEmL77zonn7p2SRMvTMP3ZEXibnC9gz3nnhR6wcYL8Q7zXypKTMD58bTixDSJwIDAQAB
 
-resend._domainkey.send: # TODO owner unknown, added from Cloudflare on 2026-09-21
+resend._domainkey.send: # mayonej@wit.edu
   type: TXT
   value: p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDZ19sRDp3QSyKEFu/ubIu0gTSQ7gHPT4Xv6GiamVy6XnHUPJf3CspAI+jZ/4PvQuo0KCPXgRgjNE2kp0+CiL95g46n5CySEwegvSIKV05EFD7KaOZN6AvGw62Cym7qa27eWn9ObRW/qTD2GIQ77zjirEV1BpZcQZvF40RWvKflnwIDAQAB
 
-send.send: # TODO owner unknown, added from Cloudflare on 2026-09-21
+send.send: # mayonej@wit.edu
   - type: MX
     value:
       exchange: feedback-smtp.us-east-1.amazonses.com.
@@ -94,7 +94,7 @@ send.send: # TODO owner unknown, added from Cloudflare on 2026-09-21
   - type: TXT
     value: v=spf1 include:amazonses.com ~all
 
-staging-calendar: # TODO owner unknown, added from Cloudflare on 2026-09-21
+staging-calendar: # mayonej@wit.edu, lambertl@wit.edu
   octodns:
     cloudflare:
       auto-ttl: true
@@ -103,7 +103,7 @@ staging-calendar: # TODO owner unknown, added from Cloudflare on 2026-09-21
   type: CNAME
   value: ea3a89e8-cf12-4e35-885d-c6c4e3e0189b.cfargotunnel.com.
 
-str: # TODO owner unknown, added from Cloudflare on 2026-09-21
+str: # mayonej@wit.edu
   octodns:
     cloudflare:
       auto-ttl: true
@@ -111,11 +111,3 @@ str: # TODO owner unknown, added from Cloudflare on 2026-09-21
   ttl: 300
   type: A
   value: 129.213.163.213
-
-test: # TODO owner unknown, added from Cloudflare on 2026-09-21
-  octodns:
-    cloudflare:
-      auto-ttl: true
-  ttl: 300
-  type: TXT
-  value: test
