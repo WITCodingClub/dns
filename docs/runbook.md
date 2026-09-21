@@ -4,8 +4,16 @@ For DNS Managers. It covers the one time setup and the things that go wrong.
 
 ## One time setup
 
-Do these in order. The order matters, because a required check that does not
-exist yet blocks every merge.
+Do these in order. The order matters twice over. A required check that has
+never run on `main` blocks every merge. And the zone files do not yet hold what
+Cloudflare holds, so the drift check fails until the first sync pull request
+lands.
+
+> **The zone files are nearly empty and Cloudflare is not.** As of this
+> writing, `witcc.dev` has 14 records in Cloudflare and one in the zone file.
+> `hackwit.org` has 4 records in Cloudflare and none in the zone file. Those
+> include the `MX`, SPF, DMARC and DKIM records for club email. Step 3 is what
+> fixes this. Do not run `./bin/sync --force` before it.
 
 ### 1. Secrets
 
@@ -18,6 +26,10 @@ exist yet blocks every merge.
 The two Cloudflare tokens already exist. Create them at
 **Cloudflare > My Profile > API Tokens** with the `Edit zone DNS` template, and
 scope each one to `witcc.dev` and `hackwit.org` only.
+
+> **Rotate `CLOUDFLARE_TOKEN_READ_ONLY` once.** The workflow it replaces ran
+> scripts from a pull request while holding it, so anybody who opened a pull
+> request could have read it. See [`SECURITY.md`](../SECURITY.md).
 
 `DNS_BOT_TOKEN` is new and you have to create it. GitHub does not start
 workflows for commits pushed with the built in `GITHUB_TOKEN`. Without this
@@ -42,10 +54,31 @@ $ gh api orgs/WITCodingClub/teams/dns-managers/repos/WITCodingClub/dns \
     --jq .permissions
 ```
 
-### 3. Required checks and code owner review
+### 3. Pull Cloudflare into git
 
-Do this **after** these workflows are on `main`. A required check that has
-never run on `main` leaves every pull request waiting forever.
+Run the nightly sync by hand, then review and merge the pull request it opens.
+Expect it to be large. Cloudflare holds the real records today.
+
+```console
+$ gh workflow run sync-from-cloudflare.yml
+$ gh run watch
+```
+
+Give every record marked `TODO owner unknown` an owner before you merge.
+
+Once it has merged, confirm that Cloudflare and `main` agree:
+
+```console
+$ export CLOUDFLARE_TOKEN=...   # the read-only token
+$ ./bin/plan
+```
+
+It should print `## No changes were planned`. Until it does, the
+`cloudflare in sync` check fails on every pull request, which is the point.
+
+### 4. Required checks and code owner review
+
+Do this **last**, after the workflows are on `main` and step 3 has landed.
 
 The `main` ruleset already requires one approving review, squash merge, and
 resolved review threads. Add code owner review and the three checks:
@@ -61,18 +94,8 @@ Then check it:
 $ gh api repos/WITCodingClub/dns/rulesets/9465567 --jq '.rules[] | select(.type=="pull_request" or .type=="required_status_checks")'
 ```
 
-### 4. Turn on the nightly sync
-
-The schedule starts by itself once the workflow is on `main`. Run it once by
-hand first, so that the first drift pull request appears while you are watching:
-
-```console
-$ gh workflow run sync-from-cloudflare.yml
-$ gh run watch
-```
-
-Expect the first run to open a large pull request. The zone files are nearly
-empty today and Cloudflare holds the real records.
+The nightly schedule starts by itself once the workflow is on `main`. There is
+nothing else to turn on.
 
 ## The checks
 
@@ -108,9 +131,22 @@ Read the workflow log. The usual causes:
 
 The zone files and Cloudflare now disagree. Fix it, do not leave it.
 
-- **`TooMuchChange`.** octoDNS refuses a plan that updates or deletes more than
-  30% of a zone. This is the safety net working. Read the plan. If the change
-  really is correct, apply it by hand:
+- **`Too many deletes`.** The deploy refuses a plan that deletes more than
+  `MAX_DELETES` records. Read the plan in the job summary. If every delete is
+  correct, run the deploy by hand:
+
+  ```console
+  $ gh workflow run deploy.yml -f allow_mass_delete=true
+  ```
+
+  This guard exists because octoDNS's own guard has a hole. octoDNS refuses a
+  plan that updates or deletes more than 30% of a zone, but only for a zone
+  that already has at least 10 records. `MIN_EXISTING_RECORDS` is a constant in
+  octoDNS and cannot be configured. `hackwit.org` has fewer records than that,
+  so octoDNS would delete every one of them without complaining.
+
+- **`TooMuchChange`.** This is octoDNS's own guard, for a zone with 10 records
+  or more. Read the plan. If the change really is correct, apply it by hand:
 
   ```console
   $ export CLOUDFLARE_TOKEN=...   # the edit token

@@ -121,7 +121,7 @@ Four workflows do the work:
 |---|---|---|
 | [`validate`](./.github/workflows/validate.yml) | Every pull request | Checks the YAML, every record, and the tools tests. Holds no secrets, so it is safe on forks. |
 | [`plan`](./.github/workflows/plan.yml) | Every pull request | Posts the plan as a comment, and fails if Cloudflare has drifted away from `main`. |
-| [`deploy`](./.github/workflows/deploy.yml) | Push to `main` | Applies the zone files to Cloudflare, then confirms they match. |
+| [`deploy`](./.github/workflows/deploy.yml) | Push to `main` | Applies the zone files to Cloudflare, then confirms they match. Refuses a plan that deletes more than three records. |
 | [`sync-from-cloudflare`](./.github/workflows/sync-from-cloudflare.yml) | Nightly | Pulls manual Cloudflare changes back into the zone files as a pull request. |
 
 ### Why the nightly sync exists

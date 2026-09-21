@@ -1,8 +1,8 @@
 # Pinned so that a nightly job and a pull request plan always agree.
 # Bump with a pull request, never in place.
-octodns==1.14.0
-octodns-cloudflare==1.0.0
+octodns==1.22.0
+octodns-cloudflare==1.2.0
 
 # Used by tools/merge_live.py to merge Cloudflare state back into the zone
 # files without destroying the ownership comments.
-ruamel.yaml==0.18.6
+ruamel.yaml==0.19.1
