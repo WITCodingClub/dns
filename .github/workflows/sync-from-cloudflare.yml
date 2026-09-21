@@ -47,7 +47,11 @@ jobs:
         id: bot
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.DNS_BOT_APP_ID }}
+          # The client id is an identifier, not a credential, so it lives in a
+          # repository variable rather than a secret. Keeping it out of the
+          # secret store also keeps it out of the log masker, which makes a
+          # failure here readable.
+          client-id: ${{ vars.DNS_BOT_CLIENT_ID }}
           private-key: ${{ secrets.DNS_BOT_PRIVATE_KEY }}
 
       - uses: actions/checkout@v7

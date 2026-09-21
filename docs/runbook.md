@@ -21,8 +21,13 @@ lands.
 |---|---|---|
 | `CLOUDFLARE_TOKEN` | Cloudflare API token, **edit** DNS for both zones | `deploy` |
 | `CLOUDFLARE_TOKEN_READ_ONLY` | Cloudflare API token, **read** DNS for both zones | `plan`, `sync-from-cloudflare` |
-| `DNS_BOT_APP_ID` | App ID of the WITCC DNS Bot GitHub App | `sync-from-cloudflare` |
-| `DNS_BOT_PRIVATE_KEY` | That App's private key, the whole `.pem` | `sync-from-cloudflare` |
+| `DNS_BOT_PRIVATE_KEY` | Private key of the WITCC DNS Bot GitHub App, the whole `.pem` | `sync-from-cloudflare` |
+
+There is also one repository **variable**, not a secret:
+
+| Variable | What it is |
+|---|---|
+| `DNS_BOT_CLIENT_ID` | Client ID of the same App. An identifier, not a credential |
 
 The two Cloudflare tokens already exist. Create them at
 **Cloudflare > My Profile > API Tokens** with the `Edit zone DNS` template, and
@@ -56,18 +61,25 @@ the team can approve its pull requests. It also has no expiry to forget.
    `Pull requests: Read and write`, `Issues: Read and write`. Nothing else.
 5. **Where can this App be installed**: only this account.
 6. Create it, then **Generate a private key**. A `.pem` downloads.
-7. **Install App** on the left, install it on `WITCodingClub/dns` only.
-8. Save two repository secrets:
+7. **Install App** on the left, install it on `WITCodingClub/dns` only. The App
+   can do nothing until this step.
+8. Record the client id and the key:
 
    ```console
-   $ gh secret set DNS_BOT_APP_ID --repo WITCodingClub/dns
+   $ gh variable set DNS_BOT_CLIENT_ID --repo WITCodingClub/dns --body 'Iv23...'
    $ gh secret set DNS_BOT_PRIVATE_KEY --repo WITCodingClub/dns < ~/Downloads/witcc-dns-bot.*.pem
    ```
 
-   The App ID is on the App's settings page. The private key secret is the
-   whole `.pem` file, `BEGIN`/`END` lines included.
-9. Delete the `.pem` from your Downloads folder, and delete the old
-   `DNS_BOT_TOKEN` secret if it is still there.
+   The client id is on the App's settings page. The private key is the whole
+   `.pem` file, `BEGIN` and `END` lines included.
+9. Delete the `.pem` from your Downloads folder.
+
+To check that it worked:
+
+```console
+$ gh api orgs/WITCodingClub/installations --jq '.installations[].app_slug'
+$ gh workflow run sync-from-cloudflare.yml && gh run watch
+```
 
 ### 2. Team access
 
