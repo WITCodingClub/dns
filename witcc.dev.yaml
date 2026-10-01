@@ -3,6 +3,13 @@
   - octodns:
       cloudflare:
         auto-ttl: true
+        proxied: true
+    ttl: 300
+    type: AAAA
+    value: '100::'
+  - octodns:
+      cloudflare:
+        auto-ttl: true
     ttl: 300
     type: MX
     values:
