@@ -27,6 +27,7 @@
     values:
       - MS=ms50132535
       - google-site-verification=gM4K9uxuf8Ec4WCHPFh87OPjG-JqWMHJm57Kg5OII8g
+      - v=MCPv1\; k=ed25519\; p=fTfE5lZvw/8PJwBSOzAO6bOa/cJpsC5WvXPKHk4Mr3g=
       - v=spf1 include:_spf.mx.cloudflare.net ~all
 
 _dmarc: # mayonej@wit.edu
